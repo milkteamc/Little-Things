@@ -72,6 +72,7 @@ public class LittleComposter extends JavaPlugin implements Listener {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("littlecomposter.reload")) {
             sender.sendMessage(ChatColor.RED + "You don't have permission for this command!");
+            return true;
         }
         if (args.length != 0 && args[0].equals("reload")) {
             reload();
@@ -100,12 +101,13 @@ public class LittleComposter extends JavaPlugin implements Listener {
         Material type = item.getType();
         if (shouldCompost(type) && increaseComposterLevel(type, destination, true)) {
             int amount = item.getAmount();
-            item.setAmount(--amount);
+            item.setAmount(amount - 1);
         }
     }
 
     @EventHandler
     public void onHopperInteractComposter(InventoryMoveItemEvent e) {
+        // Only handle hopper source inventories
         if (!InventoryType.HOPPER.equals(e.getSource().getType())) return;
         if (!(e.getSource().getHolder() instanceof Hopper)) return;
 
@@ -113,23 +115,63 @@ public class LittleComposter extends JavaPlugin implements Listener {
         if (location == null) return;
 
         Block hopperBlock = location.getBlock();
-        Directional hopper = (Directional) hopperBlock.getBlockData();
-        Block destination = hopperBlock.getLocation().clone()
-                .add(Faces.valueOf(hopper.getFacing().name()).getVector())
-                .getBlock();
-
-        if (!Material.COMPOSTER.equals(destination.getType())) return;
+        Block destination = getHopperDestination(hopperBlock);
+        
+        // Check if destination is a composter
+        if (destination == null || !Material.COMPOSTER.equals(destination.getType())) return;
 
         ItemStack item = e.getItem();
+        if (item == null) return;
+        
         Material type = item.getType();
         if (shouldCompost(type)) {
+            // Check if composter can accept more items
+            Levelled composter = (Levelled) destination.getBlockData();
+            int maxLevel = composter.getMaximumLevel() - 1; // -1 to avoid full composter
+            int currLevel = composter.getLevel();
+            
+            if (currLevel >= maxLevel) {
+                // Composter is full, cancel the event to prevent items from being moved
+                e.setCancelled(true);
+                return;
+            }
+            
             boolean increased = increaseComposterLevel(type, destination, false);
             if (increased) {
-                int amount = item.getAmount();
-                item.setAmount(--amount);
-                e.setItem(item);
+                // Successfully composted, reduce item amount
+                int newAmount = item.getAmount() - 1;
+                if (newAmount <= 0) {
+                    // If no items left, cancel the move entirely
+                    e.setCancelled(true);
+                } else {
+                    // Update the item with reduced amount
+                    ItemStack newItem = item.clone();
+                    newItem.setAmount(newAmount);
+                    e.setItem(newItem);
+                }
             }
         }
+    }
+    
+    /**
+     * Get the block that a hopper is pointing to
+     * @param hopperBlock The hopper block
+     * @return The destination block, or null if invalid
+     */
+    private Block getHopperDestination(Block hopperBlock) {
+        if (hopperBlock.getBlockData() instanceof Directional) {
+            Directional hopper = (Directional) hopperBlock.getBlockData();
+            try {
+                Faces face = Faces.valueOf(hopper.getFacing().name());
+                return hopperBlock.getLocation().clone()
+                        .add(face.getVector())
+                        .getBlock();
+            } catch (IllegalArgumentException e) {
+                logger.log(Level.WARNING, "Unknown hopper facing direction: " + hopper.getFacing().name());
+                return null;
+            }
+        }
+        return null;
     }
 
     private boolean shouldCompost(Material type) {
@@ -145,7 +187,7 @@ public class LittleComposter extends JavaPlugin implements Listener {
      *
      * @param type           Type of the material
      * @param composterBlock Composter
-     * @param playSound
+     * @param playSound      Whether to play sound effects
      * @return true if the level was increased, false if the composter is full.
      */
     private boolean increaseComposterLevel(Material type, Block composterBlock, boolean playSound) {
@@ -156,7 +198,7 @@ public class LittleComposter extends JavaPlugin implements Listener {
         int currLevel = composter.getLevel();
         if (currLevel < maxLevel) {
             if (succeeded) {
-                composter.setLevel(++currLevel);
+                composter.setLevel(currLevel + 1);
                 composterBlock.setBlockData(composter);
             }
             if (playSound) {
@@ -186,6 +228,5 @@ public class LittleComposter extends JavaPlugin implements Listener {
         public Vector getVector() {
             return vector;
         }
-
     }
 }
