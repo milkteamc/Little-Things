@@ -2,14 +2,17 @@ Recipes:
   Toast:
     In:
       Item: BREAD
+      # CustomModelData: 12345
     Out:
       Item: BREAD
       Name: 'Toast'
       Saturation: 1
+      # CustomModelData: 10001
     Campfire: true
     Smoker: true
     Cooking_time_seconds: 5
     Xp: 0.0
+
   Potato_Mash:
     In:
       Item: BAKED_POTATO
@@ -17,10 +20,26 @@ Recipes:
       Item: BAKED_POTATO
       Name: 'Potato Mash'
       Saturation: 1
+      # CustomModelData: 10002
     Campfire: true
     Smoker: true
     Cooking_time_seconds: 5
     Xp: 0.0
+
+  Golden_Apple_Enhanced:
+    In:
+      Item: GOLDEN_APPLE
+      CustomModelData: 20001
+    Out:
+      Item: GOLDEN_APPLE
+      Name: 'Enhanced Golden Apple'
+      Saturation: 5
+      CustomModelData: 20002
+    Campfire: true
+    Smoker: true
+    Cooking_time_seconds: 15
+    Xp: 1.0
+
   Smelt_Gold_Helmet:
     In:
       Item: GOLDEN_HELMET
@@ -28,6 +47,7 @@ Recipes:
       Item: GOLD_NUGGET
       Amount: 3
     Blast: true
+
   Smelt_Gold_Chest:
     In:
       Item: GOLDEN_CHESTPLATE
@@ -35,6 +55,7 @@ Recipes:
       Item: GOLD_NUGGET
       Amount: 6
     Blast: true
+
   Smelt_Gold_Pants:
     In:
       Item: GOLDEN_LEGGINGS
@@ -42,6 +63,7 @@ Recipes:
       Item: GOLD_NUGGET
       Amount: 5
     Blast: true
+
   Smelt_Gold_Boots:
     In:
       Item: GOLDEN_BOOTS
@@ -49,6 +71,7 @@ Recipes:
       Item: GOLD_NUGGET
       Amount: 2
     Blast: true
+
   Smelt_Gold_Sword:
     In:
       Item: GOLDEN_SWORD

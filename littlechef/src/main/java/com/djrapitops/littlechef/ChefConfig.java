@@ -59,7 +59,7 @@ public class ChefConfig {
     }
 
     private Collection<Recipe> getRecipe(String key, ConfigurationSection recipe) throws InvalidConfigurationException {
-        RecipeChoice.MaterialChoice input = getInput(recipe);
+        RecipeChoice input = getInput(recipe);
         ItemStack output = getOutput(recipe);
 
         float experience = recipe.contains("Xp") ? (float) recipe.getDouble("Xp") : 0.1F;
@@ -82,10 +82,22 @@ public class ChefConfig {
         return recipes;
     }
 
-    private RecipeChoice.MaterialChoice getInput(ConfigurationSection recipe) throws InvalidConfigurationException {
+    private RecipeChoice getInput(ConfigurationSection recipe) throws InvalidConfigurationException {
         ConfigurationSection in = recipe.getConfigurationSection("In");
         Material ingredient = getMaterial(in.getString("Item"));
-        return new RecipeChoice.MaterialChoice(ingredient);
+
+        if (in.contains("CustomModelData")) {
+            ItemStack inputItem = new ItemStack(ingredient);
+            ItemMeta meta = inputItem.getItemMeta();
+            if (meta != null) {
+                meta.setCustomModelData(in.getInt("CustomModelData"));
+                inputItem.setItemMeta(meta);
+            }
+            return new RecipeChoice.ExactChoice(inputItem);
+        } else {
+            // Use material choice for regular items (no custom model data)
+            return new RecipeChoice.MaterialChoice(ingredient);
+        }
     }
 
     private ItemStack getOutput(ConfigurationSection recipe) throws InvalidConfigurationException {
@@ -94,20 +106,27 @@ public class ChefConfig {
         int amount = out.contains("Amount") ? out.getInt("Amount") : 1;
 
         ItemStack output = new ItemStack(outputItem, amount);
+        ItemMeta meta = output.getItemMeta();
 
-        if (out.contains("Name")) {
-            ItemMeta meta = output.getItemMeta();
-            meta.setDisplayName(ChatColor.RESET + out.getString("Name"));
+        if (meta != null) {
+            if (out.contains("Name")) {
+                meta.setDisplayName(ChatColor.RESET + out.getString("Name"));
+            }
+
+            if (out.contains("CustomModelData")) {
+                meta.setCustomModelData(out.getInt("CustomModelData"));
+            }
+
+            if (out.contains("Saturation")) {
+                meta.setLore(Arrays.asList(
+                        ChatColor.GREEN + "增加飽食度",
+                        Integer.toString(out.getInt("Saturation"))
+                ));
+            }
+
             output.setItemMeta(meta);
         }
-        if (out.contains("Saturation")) {
-            ItemMeta meta = output.getItemMeta();
-            meta.setLore(Arrays.asList(
-                    "Extra Hunger Points:",
-                    Integer.toString(out.getInt("Saturation"))
-            ));
-            output.setItemMeta(meta);
-        }
+
         return output;
     }
 
@@ -118,5 +137,4 @@ public class ChefConfig {
         }
         return material;
     }
-
 }
