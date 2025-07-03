@@ -116,43 +116,49 @@ public class LittleComposter extends JavaPlugin implements Listener {
 
         Block hopperBlock = location.getBlock();
         Block destination = getHopperDestination(hopperBlock);
-        
+
         // Check if destination is a composter
         if (destination == null || !Material.COMPOSTER.equals(destination.getType())) return;
 
         ItemStack item = e.getItem();
         if (item == null) return;
-        
+
         Material type = item.getType();
         if (shouldCompost(type)) {
             // Check if composter can accept more items
             Levelled composter = (Levelled) destination.getBlockData();
             int maxLevel = composter.getMaximumLevel() - 1; // -1 to avoid full composter
             int currLevel = composter.getLevel();
-            
+
             if (currLevel >= maxLevel) {
                 // Composter is full, cancel the event to prevent items from being moved
                 e.setCancelled(true);
                 return;
             }
-            
-            boolean increased = increaseComposterLevel(type, destination, false);
-            if (increased) {
-                // Successfully composted, reduce item amount
-                int newAmount = item.getAmount() - 1;
-                if (newAmount <= 0) {
-                    // If no items left, cancel the move entirely
-                    e.setCancelled(true);
-                } else {
-                    // Update the item with reduced amount
-                    ItemStack newItem = item.clone();
-                    newItem.setAmount(newAmount);
-                    e.setItem(newItem);
+
+            e.setCancelled(true);
+
+            Hopper hopper = (Hopper) e.getSource().getHolder();
+            if (hopper != null) {
+                for (int slot = 0; slot < hopper.getInventory().getSize(); slot++) {
+                    ItemStack hopperItem = hopper.getInventory().getItem(slot);
+                    if (hopperItem != null && hopperItem.getType() == type) {
+                        int newAmount = hopperItem.getAmount() - 1;
+                        if (newAmount <= 0) {
+                            hopper.getInventory().setItem(slot, null);
+                        } else {
+                            hopperItem.setAmount(newAmount);
+                        }
+
+                        // Process the composting (always consumes the item, but may not increase level)
+                        increaseComposterLevel(type, destination, false);
+                        break;
+                    }
                 }
             }
         }
     }
-    
+
     /**
      * Get the block that a hopper is pointing to
      * @param hopperBlock The hopper block
